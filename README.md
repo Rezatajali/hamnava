@@ -21,6 +21,13 @@ responsive desktop navigation and mobile tabs.
 - Session-scoped auth, Firestore memory cache, owner-scoped Rules with field/type
   validation, browser capability tests, domain tests and emulator isolation tests.
 
+## Continue in another chat
+
+Read [the complete Persian handoff](docs/HANDOFF.fa.md) for goals, Firebase identifiers,
+current deployment state, file map and a ready-to-paste prompt. Run
+`bash scripts/preview.sh` to view locally, or `bash scripts/deploy-firebase.sh`
+to build and publish after signing in to the project owner's Google account.
+
 ## Run locally
 
 Requires Flutter **3.35+ / Dart 3.9+**; current stable Flutter is recommended.
