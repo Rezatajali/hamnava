@@ -47,3 +47,23 @@ test('speech synthesis refuses to substitute a different language', async () => 
   const b=browser({speechSynthesis:{getVoices:()=>[{lang:'en-US'}],cancel(){},speak(){spoken=true;}}});
   assert.equal(await b.hamnavaSpeak('سلام','fa-IR'),false);assert.equal(spoken,false);
 });
+test('recording stop persists audio locally and releases microphone tracks', async () => {
+  const clips=new Map();let released=0;
+  class Recorder {
+    static isTypeSupported(){return true;}
+    constructor(){this.state='inactive';this.mimeType='audio/webm';}
+    start(){this.state='recording';}
+    stop(){this.state='inactive';this.ondataavailable({data:new Blob(['audio'],{type:this.mimeType})});queueMicrotask(()=>this.onstop?.());}
+  }
+  const db={close(){},transaction(){
+    const tx={objectStore:()=>({put:(blob,key)=>{clips.set(key,blob);return {result:key};}})};
+    queueMicrotask(()=>tx.oncomplete?.());return tx;
+  }};
+  const b=browser({isSecureContext:true,MediaRecorder:Recorder,
+    navigator:{mediaDevices:{getUserMedia:async()=>({getTracks:()=>[{stop:()=>released++}]})}},
+    indexedDB:{open(){const request={result:db};queueMicrotask(()=>request.onsuccess?.());return request;}}});
+  const events=[];
+  assert.equal(await b.hamnavaStart('alice/clip','fa-IR',raw=>events.push(JSON.parse(raw))),true);
+  assert.equal(await b.hamnavaStop(),'alice/clip');assert.equal(released,1);
+  assert.equal(clips.get('alice/clip').size,5);assert.equal(events.at(-1).value,'alice/clip');
+});

@@ -102,10 +102,14 @@ setup are outside this first release.
 
 ## Verification at source publication
 
-The six browser capability/control-flow tests pass in the creation environment.
-Shell syntax and JSON files were checked. Flutter SDK, Firebase emulator and a
-real Safari session were unavailable locally; Flutter compilation, Rules tests
-and end-to-end sign-in/sync/audio still require the Actions checks and device QA.
+GitHub Actions [run 38370677298](https://github.com/Rezatajali/hamnava/actions/runs/38370677298)
+passed Flutter analysis, domain/widget tests, the release web build, six browser
+control-flow tests and three Firestore emulator isolation/schema tests for runtime
+commit `28ed78f6a4617ea05ac5d3aa4d3ef9219ecfad10`. A seventh browser test covering
+local audio persistence and microphone release also passes locally. Later changes
+only update this evidence and add that test; application runtime code is unchanged.
+Actual Safari/iPhone/Mac sign-in, synchronization, microphone quality and installed
+Persian voices still require device acceptance testing. No live user data were used.
 
 ## Device acceptance checklist
 
