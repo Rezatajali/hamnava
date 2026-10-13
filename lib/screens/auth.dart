@@ -65,7 +65,7 @@ class _AuthScreenState extends State<AuthScreen> {
           TextButton(onPressed: busy ? null : () => setState(() { signup = !signup; error = null; }),
             child: Text(signup ? 'حساب دارم؛ ورود' : 'حساب ندارم؛ ثبت‌نام')),
         ]))),
-        const Text('متن‌ها و اطلاعات مالی در حساب شخصی تو ذخیره می‌شوند. فایل‌های صوتی فقط در همین مرورگر می‌مانند.',
+        const Text('متن‌ها، اطلاعات مالی و عکس رسیدها در حساب شخصی تو ذخیره می‌شوند. فایل‌های صوتی فقط در همین مرورگر می‌مانند.',
           textAlign: TextAlign.center, style: TextStyle(height: 1.8, fontSize: 14)),
       ])),
   ))));

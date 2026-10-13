@@ -6,19 +6,20 @@ responsive desktop navigation and mobile tabs.
 
 ## Implemented
 
-- Email/password sign-up and login, sign-out, password reset, email verification.
+- Email/password sign-up and login, persistent browser sign-in, sign-out, password reset and email verification. Private dialogs are cleared when the account changes.
 - Owner-scoped Firestore journal: create, edit, delete, moods, tags, search and
-  incremental history loading. Draft text stays in session storage until saved.
+  incremental history loading and collapsed daily folders with note/audio counts. Draft text stays in session storage until saved.
 - Independent finance: income/expense, integer euro cents, categories, editable
   dates, month navigation, totals and category share charts.
-- Live browser speech-to-text with Persian/German language selection and editable
+- Separate recording and browser speech-to-text modes, avoiding two microphone consumers on iOS. Persian/German dictation produces editable
   transcripts. Persian transaction suggestions from numeric or basic number-word
   sentences always require user review. This is deterministic parsing, not AI.
 - Microphone recording, maximum five minutes per recording, with local IndexedDB
   clip storage, playback and download. Original audio **does not upload to Firebase**.
+- Receipt photos: camera/gallery input, JPEG compression up to 200 KiB, up to three per transaction, owner-scoped Firestore synchronization, zoom, image download and individual/monthly/all-receipt PDF exports. No Firebase Storage or paid OCR is used.
 - Text-to-speech checks for a matching installed language voice and reports absence.
-- JSON export of all journal entries and transactions, independently of pagination.
-- Session-scoped auth, Firestore memory cache, owner-scoped Rules with field/type
+- JSON export of all journal entries, transactions and compressed receipt images, independently of pagination.
+- Persistent local auth, Firestore memory cache, owner-scoped Rules with field/type
   validation, browser capability tests, domain tests and emulator isolation tests.
 
 ## Continue in another chat
@@ -61,7 +62,7 @@ keys to the repository. Analytics, Cloud Functions and Firebase Storage are not 
 flutter analyze
 flutter test
 flutter build web --release
-node --test test-js/browser.test.cjs
+node --test test-js/browser.test.cjs test-js/files.test.cjs
 npm install
 npm run test:rules
 ```
@@ -77,8 +78,7 @@ firebase deploy --project hamnava-67a58 --only firestore:rules,hosting
 ```
 
 Review the project ID before deploying. The Hosting URL is expected to be
-`https://hamnava-67a58.web.app` **after a successful deployment**. No deployment has
-been performed by this source update, so the URL is not claimed to be live.
+`https://hamnava-67a58.web.app` **after a successful deployment**. The owner successfully deployed an earlier version. Version 0.2 requires a new deployment; a source update alone does not update Hosting.
 
 The GitHub Actions workflow checks Flutter analysis, tests, web build, browser
 logic and Firestore Rules. Inspect actual run results in Actions before using a
@@ -92,7 +92,7 @@ operation. The browser may send audio to its speech provider; no paid API is
 configured by this app. Recordings remain on the local browser origin and will
 not appear on a different device or localhost port. Clearing browser data may
 erase them; download important clips. JSON exports include audio references,
-not audio bytes. Unsaved recording references do not survive a page reload.
+not audio bytes. Unsaved recording references do not survive a page reload. Stop and save the note before leaving. Recording stops when the page is hidden. Audio-file import accepts up to 20 MiB and does not transcribe imported files.
 
 Speech recognition is for live dictation; arbitrary previously recorded audio
 files cannot be transcribed by this implementation. Missing Persian TTS voices
@@ -129,3 +129,9 @@ Persian voices still require device acceptance testing. No live user data were u
 - Export records beyond the first 30 notes; compare counts with Firestore.
 
 See [architecture](docs/ARCHITECTURE.md).
+
+## Version 0.2 validation
+
+Local checks passed: Flutter analysis, 16 domain/widget/PDF tests, release web build, 17 browser/file-flow tests and 5 Firestore emulator tests. A headless Chromium check using a virtual microphone produced a nonempty MP4 clip, released microphone tracks and recovered the clip after reload. A real canvas/file-picker check converted a 2400×3600 PNG to a 1067×1600 JPEG (76,409 bytes) and verified its download. These checks do not establish iPhone hardware compatibility or Persian dictation quality.
+
+See [the Persian release/testing guide](docs/RELEASE-0.2.fa.md). Keep original receipt photos if full image quality matters; the app stores compressed JPEG copies in Firestore within Spark quotas. Signing out is necessary on shared devices now that login persists.

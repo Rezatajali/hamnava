@@ -18,9 +18,11 @@ class FinanceItem {
     required this.income,
     required this.date,
     required this.note,
+    this.receiptCount = 0,
   });
   final String id, category, note;
   final int cents;
+  final int receiptCount;
   final bool income;
   final DateTime date;
 }
@@ -304,6 +306,11 @@ class _TransactionRow extends StatelessWidget {
                       color: item.income ? forest : expenseInk,
                     ),
                   ),
+                  if (item.receiptCount > 0)
+                    Text(
+                      '${item.receiptCount} رسید',
+                      style: const TextStyle(fontSize: 14, color: forest),
+                    ),
                   if (item.note.isNotEmpty)
                     Text(
                       item.note,

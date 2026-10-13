@@ -35,18 +35,26 @@
     active = state;
     try {
       if (key) {
+        if (!root.isSecureContext) throw new Error('insecure-context');
         if (!root.hamnavaCanRecord()) throw new Error('recording-unavailable');
         state.stream = await navigator.mediaDevices.getUserMedia({audio: true});
         if (state.cancelled || state.sequence !== generation) { release(state); return false; }
-        const types = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm'];
-        const mimeType = types.find(type => MediaRecorder.isTypeSupported(type));
+        const types = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'];
+        const mimeType = types.find(type => MediaRecorder.isTypeSupported?.(type));
         state.recorder = new MediaRecorder(state.stream, mimeType ? {mimeType} : {});
         state.recorder.ondataavailable = e => { if (e.data.size) state.chunks.push(e.data); };
-        state.recorder.onerror = () => emit(state, 'error', 'recording-failed');
-        state.recorder.start(1000);
-      }
-      const Recognition = root.SpeechRecognition || root.webkitSpeechRecognition;
-      if (Recognition) {
+        state.recorder.onerror = () => {
+          emit(state, 'error', 'recording-failed');
+          root.hamnavaStop().catch(() => {});
+        };
+        // A bounded recording needs only its final blob; avoiding fragmented
+        // MP4 chunks is more reliable across Safari MediaRecorder versions.
+        state.recorder.start();
+      } else {
+        // Starting a second microphone consumer after awaiting getUserMedia can
+        // fail on iOS or lose the user gesture. Dictation is a separate mode.
+        const Recognition = root.SpeechRecognition || root.webkitSpeechRecognition;
+        if (!Recognition) throw new Error('speech-unavailable');
         state.recognition = new Recognition();
         state.recognition.lang = locale;
         state.recognition.continuous = true;
@@ -61,17 +69,20 @@
           emit(state, 'interim', interim);
         };
         state.recognition.onerror = e => emit(state, 'error', e.error || 'speech-failed');
-        state.recognition.onend = () => { state.speechDone?.(); emit(state, 'speech-ended'); };
-        try { state.recognition.start(); } catch (_) { emit(state, 'error', 'speech-unavailable'); }
-      } else {
-        if (!key) throw new Error('speech-unavailable');
-        emit(state, 'error', 'speech-unavailable');
+        state.recognition.onend = () => {
+          state.recognitionEnded = true;
+          state.speechDone?.(); emit(state, 'speech-ended');
+        };
+        state.recognition.start();
       }
       emit(state, 'started');
       state.timer = setTimeout(() => { if (active === state) root.hamnavaStop().catch(() => {}); }, 300000);
       return true;
     } catch (error) {
-      emit(state, 'error', error.name === 'NotAllowedError' ? 'permission-denied' : (error.message || 'recording-failed'));
+      const errors = {NotAllowedError: 'permission-denied', NotReadableError: 'microphone-busy',
+        NotFoundError: 'microphone-missing', NotSupportedError: 'recording-unavailable'};
+      emit(state, 'error', !key && error.name === 'NotAllowedError' ? 'speech-permission-denied'
+        : errors[error.name] || error.message || 'recording-failed');
       release(state); if (active === state) active = null;
       return false;
     }
@@ -82,7 +93,7 @@
     if (state.stopping) return state.stopping;
     state.stopping = (async () => {
       clearTimeout(state.timer);
-      if (state.recognition) {
+      if (state.recognition && !state.recognitionEnded) {
         await new Promise(resolve => {
           const timer = setTimeout(resolve, 1500);
           state.speechDone = () => { clearTimeout(timer); resolve(); };
@@ -102,6 +113,8 @@
           const blob = new Blob(state.chunks, {type: state.recorder.mimeType || state.chunks[0].type});
           await audioDB('readwrite', store => store.put(blob, state.key));
           savedKey = state.key;
+        } else if (state.key && !state.cancelled) {
+          emit(state, 'error', 'recording-empty');
         }
       } catch (_) { emit(state, 'error', 'audio-storage-failed'); }
       finally { release(state); if (active === state) active = null; }
@@ -127,10 +140,27 @@
     setTimeout(() => URL.revokeObjectURL(url), 30000);
   }
   root.hamnavaDownload = (text, filename) => downloadBlob(new Blob([text], {type: 'application/json;charset=utf-8'}), filename);
+  root.hamnavaDownloadBinary = (data, filename, mime) => {
+    const binary = atob(data), bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+    downloadBlob(new Blob([bytes], {type:mime}), filename);
+  };
+  root.hamnavaPickAudio = async key => {
+    const file = await root.hamnavaChooseFile('audio/*,.m4a,.mp3,.wav,.webm');
+    if (!file) return '';
+    if (file.size > 20 * 1024 * 1024) return JSON.stringify({error:'audio-file-too-large'});
+    const formats = {m4a:'audio/mp4',mp3:'audio/mpeg',wav:'audio/wav',webm:'audio/webm',ogg:'audio/ogg'};
+    const mime = file.type || formats[file.name.split('.').pop().toLowerCase()];
+    if (!mime?.startsWith('audio/')) return JSON.stringify({error:'audio-file-format'});
+    try {
+      await audioDB('readwrite', store => store.put(new Blob([file], {type:mime}), key));
+      return JSON.stringify({key});
+    } catch (_) { return JSON.stringify({error:'audio-storage-failed'}); }
+  };
   root.hamnavaDownloadAudio = async key => {
     const blob = await audioDB('readonly', store => store.get(key));
     if (!blob) return false;
-    downloadBlob(blob, `hamnava-audio.${blob.type.includes('mp4') ? 'm4a' : 'webm'}`); return true;
+    const extension = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('mpeg') ? 'mp3' : blob.type.includes('wav') ? 'wav' : blob.type.includes('ogg') ? 'ogg' : 'webm';
+    downloadBlob(blob, `hamnava-audio.${extension}`); return true;
   };
   root.hamnavaRemoveAudio = key => audioDB('readwrite', store => store.delete(key));
   root.hamnavaStopPlayback = () => {
@@ -163,5 +193,20 @@
   };
   root.hamnavaDraft = key => { try { return sessionStorage.getItem(key) || ''; } catch (_) { return ''; } };
   root.hamnavaSetDraft = (key, text) => { try { if (text) sessionStorage.setItem(key, text); else sessionStorage.removeItem(key); } catch (_) {} };
-  root.addEventListener('pagehide', root.hamnavaCancel);
+  const stopWhenHidden = () => {
+    const state = active;
+    if (state && !state.recorder && !state.recognition) {
+      // Permission may still be pending. Cancel the late stream and reset UI.
+      emit(state, 'stopped'); root.hamnavaCancel();
+    } else if (state) {
+      root.hamnavaStop().catch(() => root.hamnavaCancel());
+      // Release hardware now even if the browser suspends the storage callback.
+      release(state);
+    }
+    root.hamnavaStopPlayback();
+  };
+  root.document?.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopWhenHidden();
+  });
+  root.addEventListener('pagehide', stopWhenHidden);
 })();

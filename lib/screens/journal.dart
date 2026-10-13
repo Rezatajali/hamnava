@@ -5,6 +5,7 @@ import '../repository.dart';
 import '../voice_composer.dart';
 import '../widgets.dart';
 import '../brand.dart';
+import '../journal_widgets.dart';
 
 class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key, required this.repo});
@@ -36,9 +37,16 @@ class _JournalScreenState extends State<JournalScreen> {
       if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
       final all = snapshot.data!.docs;
       final docs = all.where((doc) => '${doc.data()['title']} ${doc.data()['text']} ${doc.data()['tags']}'.toLowerCase().contains(search)).toList();
+      final days = groupJournalDays(docs, (doc) => (doc.data()['createdAt'] as Timestamp?)?.toDate());
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (docs.isEmpty) paper(Text(search.isEmpty ? 'اولین یادداشتت را با صدا یا متن ثبت کن.' : 'یادداشتی پیدا نشد. برای جستجوی نوشته‌های قدیمی‌تر، نمایش بیشتر را بزن.')),
-        for (final doc in docs) entryCard(doc),
+        for (final day in days.entries) JournalDayFolder(
+          key: ValueKey('day-${day.key}-$search'), day: day.key, count: day.value.length,
+          audioCount: day.value.where((doc) => (doc.data()['audioKey'] as String? ?? '').isNotEmpty).length,
+          searching: search.isNotEmpty, children: day.value.map(entryCard).toList()),
+        if (all.length >= limit) const Padding(padding: EdgeInsets.only(bottom: 12),
+          child: Text('تعدادها مربوط به یادداشت‌های بارگذاری‌شده‌اند؛ ادامهٔ روزهای قدیمی‌تر را با «نمایش بیشتر» ببین.',
+            style: TextStyle(fontSize: 14, color: mutedInk))),
         if (all.length >= limit) OutlinedButton(onPressed: () => setState(() {
           limit += 30; stream = widget.repo.journalQuery(limit).snapshots();
         }), child: const Text('نمایش بیشتر')),
@@ -52,7 +60,7 @@ class _JournalScreenState extends State<JournalScreen> {
     final audioKey = data['audioKey'] as String? ?? '';
     return paper(Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
-        Expanded(child: Text(date == null ? 'در انتظار ثبت…' : dateLabel(date), style: const TextStyle(color: forest, fontSize: 14))),
+        Expanded(child: Text(date == null ? 'در انتظار ثبت…' : 'ساعت ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}', style: const TextStyle(color: forest, fontSize: 14))),
         Text(data['mood'] as String? ?? ''),
       ]),
       const SizedBox(height: 12), Text(data['title'] as String? ?? 'یادداشت روزانه', style: Theme.of(context).textTheme.titleLarge),

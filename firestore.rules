@@ -23,17 +23,59 @@ service cloud.firestore {
         && (d.text.size() > 0 || d.audioKey.size() > 0)
         && timestampsValid();
     }
-    function validTransaction() {
+    function linkedReceipt(uid, id, receiptId) {
+      return receiptId is string && receiptId.matches('^[A-Za-z0-9_-]{1,150}$')
+        && getAfter(/databases/$(database)/documents/users/$(uid)/receipts/$(receiptId)).data.transactionId == id;
+    }
+    function receiptLinksValid(uid, id, d) {
+      return !d.keys().hasAny(['receiptIds']) || (d.receiptIds is list && d.receiptIds.size() <= 3
+        && (d.receiptIds.size() < 1 || linkedReceipt(uid, id, d.receiptIds[0]))
+        && (d.receiptIds.size() < 2 || linkedReceipt(uid, id, d.receiptIds[1]))
+        && (d.receiptIds.size() < 3 || linkedReceipt(uid, id, d.receiptIds[2])));
+    }
+    function validReceipt(uid, id) {
+      let d = request.resource.data;
+      return d.keys().hasAll(['name','originalType','image','bytes','width','height','transactionId','createdAt'])
+        && d.keys().hasOnly(['name','originalType','image','bytes','width','height','transactionId','createdAt'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 120
+        && d.originalType in ['image/jpeg','image/png','image/webp','image/heic','image/heif','unknown']
+        && d.image is string && d.image.size() <= 280000
+        && d.image.matches('^data:image/jpeg;base64,[A-Za-z0-9+/]+={0,2}$')
+        && d.bytes is int && d.bytes > 0 && d.bytes <= 204800
+        && d.width is int && d.width > 0 && d.width <= 1600
+        && d.height is int && d.height > 0 && d.height <= 1600
+        && d.transactionId is string && d.transactionId.matches('^[A-Za-z0-9_-]{1,150}$')
+        && id in getAfter(/databases/$(database)/documents/users/$(uid)/transactions/$(d.transactionId)).data.receiptIds
+        && d.createdAt == request.time;
+    }
+    function validTransaction(uid, id) {
       let d = request.resource.data;
       return d.keys().hasAll(['cents','kind','currency','category','note','date','month','createdAt','updatedAt'])
-        && d.keys().hasOnly(['cents','kind','currency','category','note','date','month','createdAt','updatedAt'])
+        && d.keys().hasOnly(['cents','kind','currency','category','note','date','month','createdAt','updatedAt','receiptIds'])
         && d.cents is int && d.cents > 0 && d.cents <= 99999999999
         && d.kind in ['income','expense'] && d.currency == 'EUR'
         && d.category in ['غذا','رفت‌وآمد','خرید','خانه','حقوق','سایر']
         && d.note is string && d.note.size() <= 2000
         && d.date is timestamp && d.month is string
         && d.month.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
-        && timestampsValid();
+        && timestampsValid() && receiptLinksValid(uid, id, d);
+    }
+    function receiptDeletionValid(uid, d) {
+      return !d.keys().hasAny(['receiptIds']) || (
+        (d.receiptIds.size() < 1 || !existsAfter(/databases/$(database)/documents/users/$(uid)/receipts/$(d.receiptIds[0])))
+        && (d.receiptIds.size() < 2 || !existsAfter(/databases/$(database)/documents/users/$(uid)/receipts/$(d.receiptIds[1])))
+        && (d.receiptIds.size() < 3 || !existsAfter(/databases/$(database)/documents/users/$(uid)/receipts/$(d.receiptIds[2]))));
+    }
+    function removedReceiptValid(uid, receiptId, d) {
+      return (d.keys().hasAny(['receiptIds']) && receiptId in d.receiptIds)
+        || !existsAfter(/databases/$(database)/documents/users/$(uid)/receipts/$(receiptId));
+    }
+    function receiptUnlinkValid(uid, d) {
+      let old = resource.data;
+      return !old.keys().hasAny(['receiptIds']) || (
+        (old.receiptIds.size() < 1 || removedReceiptValid(uid, old.receiptIds[0], d))
+        && (old.receiptIds.size() < 2 || removedReceiptValid(uid, old.receiptIds[1], d))
+        && (old.receiptIds.size() < 3 || removedReceiptValid(uid, old.receiptIds[2], d)));
     }
     match /users/{uid}/journal/{id} {
       allow read, delete: if owner(uid);
@@ -41,9 +83,18 @@ service cloud.firestore {
       allow update: if owner(uid) && validJournal(uid) && creationUnchanged();
     }
     match /users/{uid}/transactions/{id} {
-      allow read, delete: if owner(uid);
-      allow create: if owner(uid) && validTransaction() && request.resource.data.createdAt == request.time;
-      allow update: if owner(uid) && validTransaction() && creationUnchanged();
+      allow read: if owner(uid);
+      allow delete: if owner(uid) && receiptDeletionValid(uid, resource.data);
+      allow create: if owner(uid) && validTransaction(uid, id) && request.resource.data.createdAt == request.time;
+      allow update: if owner(uid) && validTransaction(uid, id) && creationUnchanged() && receiptUnlinkValid(uid, request.resource.data);
+    }
+    match /users/{uid}/receipts/{id} {
+      allow read: if owner(uid);
+      allow create: if owner(uid) && validReceipt(uid, id);
+      // Removal must also unlink the image, or remove its transaction entirely.
+      allow delete: if owner(uid) && (!existsAfter(/databases/$(database)/documents/users/$(uid)/transactions/$(resource.data.transactionId))
+        || !(id in getAfter(/databases/$(database)/documents/users/$(uid)/transactions/$(resource.data.transactionId)).data.receiptIds));
+      allow update: if false;
     }
   }
 }

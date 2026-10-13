@@ -67,3 +67,74 @@ test('recording stop persists audio locally and releases microphone tracks', asy
   assert.equal(await b.hamnavaStop(),'alice/clip');assert.equal(released,1);
   assert.equal(clips.get('alice/clip').size,5);assert.equal(events.at(-1).value,'alice/clip');
 });
+
+test('recording prefers MP4 when supported and does not start a second speech microphone', async () => {
+  let recognitionStarts=0, chosenType, released=0;
+  class Recognition { constructor(){recognitionStarts++;} }
+  class Recorder {
+    static isTypeSupported(type){return type === 'audio/mp4';}
+    constructor(stream, options){chosenType=options.mimeType;this.mimeType=chosenType;this.state='inactive';}
+    start(){this.state='recording';}
+    stop(){this.state='inactive';this.ondataavailable({data:new Blob(['mp4'],{type:this.mimeType})});queueMicrotask(()=>this.onstop?.());}
+  }
+  const db={close(){},transaction(){const tx={objectStore:()=>({put:()=>({result:'clip'})})};queueMicrotask(()=>tx.oncomplete?.());return tx;}};
+  const b=browser({isSecureContext:true,MediaRecorder:Recorder,webkitSpeechRecognition:Recognition,
+    navigator:{mediaDevices:{getUserMedia:async()=>({getTracks:()=>[{stop:()=>released++}]})}},
+    indexedDB:{open(){const request={result:db};queueMicrotask(()=>request.onsuccess?.());return request;}}});
+  assert.equal(await b.hamnavaStart('alice/ios','fa-IR',()=>{}),true);
+  assert.equal(chosenType,'audio/mp4');assert.equal(recognitionStarts,0);
+  assert.equal(await b.hamnavaStop(),'alice/ios');assert.equal(released,1);
+});
+test('dictation starts synchronously in the tap and never acquires a recording stream', async () => {
+  let started=0, microphoneCalls=0;
+  class Recognition {start(){started++;}stop(){this.onend();}abort(){}}
+  const b=browser({webkitSpeechRecognition:Recognition,navigator:{mediaDevices:{getUserMedia(){microphoneCalls++;}}}});
+  const pending=b.hamnavaStart('','fa-IR',()=>{});
+  assert.equal(started,1);assert.equal(microphoneCalls,0);await pending;await b.hamnavaStop();
+});
+test('empty recordings are reported without claiming a saved clip, and release the microphone', async () => {
+  let released=0;
+  class Recorder {
+    static isTypeSupported(){return true;}constructor(){this.state='inactive';}
+    start(){this.state='recording';}stop(){this.state='inactive';queueMicrotask(()=>this.onstop?.());}
+  }
+  const b=browser({isSecureContext:true,MediaRecorder:Recorder,
+    navigator:{mediaDevices:{getUserMedia:async()=>({getTracks:()=>[{stop:()=>released++}]})}}});
+  const events=[];await b.hamnavaStart('alice/empty','fa-IR',raw=>events.push(JSON.parse(raw)));
+  assert.equal(await b.hamnavaStop(),'');assert.equal(released,1);
+  assert.equal(events.find(e=>e.type==='error').value,'recording-empty');
+  assert.equal(events.at(-1).type,'stopped');assert.equal(events.at(-1).value,'');
+});
+test('busy microphones and synchronous recognition failures do not leave an active session', async () => {
+  const b=browser({isSecureContext:true,MediaRecorder:function(){},navigator:{mediaDevices:{getUserMedia:async()=>{throw {name:'NotReadableError'};}}}});
+  const events=[];assert.equal(await b.hamnavaStart('a/clip','fa-IR',raw=>events.push(JSON.parse(raw))),false);
+  assert.equal(events[0].value,'microphone-busy');assert.equal(await b.hamnavaStop(),'');
+  class Recognition {start(){throw {name:'NotAllowedError'};}}
+  const r=browser({SpeechRecognition:Recognition});const speech=[];
+  assert.equal(await r.hamnavaStart('','fa-IR',raw=>speech.push(JSON.parse(raw))),false);
+  assert.equal(speech[0].value,'speech-permission-denied');assert.equal(await r.hamnavaStop(),'');
+});
+
+test('backgrounding stops recording and retains its blob instead of discarding it', async () => {
+  const listeners={}, clips=new Map();let released=0;
+  class Recorder {
+    static isTypeSupported(){return true;}constructor(){this.state='inactive';this.mimeType='audio/mp4';}
+    start(){this.state='recording';}stop(){this.state='inactive';this.ondataavailable({data:new Blob(['saved'],{type:this.mimeType})});queueMicrotask(()=>this.onstop?.());}
+  }
+  const db={close(){},transaction(){const tx={objectStore:()=>({put:(blob,key)=>{clips.set(key,blob);return {result:key};}})};queueMicrotask(()=>tx.oncomplete?.());return tx;}};
+  const b=browser({document:{hidden:true,addEventListener:(type,callback)=>listeners[type]=callback},
+    isSecureContext:true,MediaRecorder:Recorder,navigator:{mediaDevices:{getUserMedia:async()=>({getTracks:()=>[{stop:()=>released++}]})}},
+    indexedDB:{open(){const request={result:db};queueMicrotask(()=>request.onsuccess?.());return request;}}});
+  const events=[];await b.hamnavaStart('alice/background','fa-IR',raw=>events.push(JSON.parse(raw)));
+  listeners.visibilitychange();await b.hamnavaStop();
+  assert.equal(clips.get('alice/background').size,5);assert.equal(released>=1,true);
+  assert.equal(events.at(-1).type,'stopped');assert.equal(events.at(-1).value,'alice/background');
+});
+test('backgrounding during a permission prompt resets UI and releases any late stream', async () => {
+  const listeners={};let resolve,released=0;
+  const b=browser({document:{hidden:true,addEventListener:(type,callback)=>listeners[type]=callback},
+    isSecureContext:true,MediaRecorder:function(){},navigator:{mediaDevices:{getUserMedia:()=>new Promise(r=>resolve=r)}}});
+  const events=[];const started=b.hamnavaStart('alice/pending','fa-IR',raw=>events.push(JSON.parse(raw)));
+  listeners.visibilitychange();assert.equal(events.at(-1).type,'stopped');
+  resolve({getTracks:()=>[{stop:()=>released++}]});assert.equal(await started,false);assert.equal(released,1);
+});

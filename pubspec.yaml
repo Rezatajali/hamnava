@@ -1,7 +1,7 @@
 name: hamnava
 description: Persian journal and independent personal finance Flutter starter.
 publish_to: none
-version: 0.1.0+1
+version: 0.2.0+2
 environment:
   sdk: '>=3.9.0 <4.0.0'
   flutter: '>=3.35.0'
@@ -13,6 +13,7 @@ dependencies:
   firebase_core: ^4.15.0
   firebase_auth: ^6.7.0
   cloud_firestore: ^6.10.0
+  pdf: ^3.11.3
 dev_dependencies:
   flutter_test:
     sdk: flutter
