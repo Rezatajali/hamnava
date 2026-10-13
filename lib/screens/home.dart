@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../platform/browser.dart';
 import '../repository.dart';
 import '../widgets.dart';
+import '../brand.dart';
 import 'journal.dart';
 import 'finance.dart';
 
@@ -60,8 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
       JournalScreen(repo: repo), FinanceScreen(repo: repo), settings(),
     ]);
     return Scaffold(
-      appBar: AppBar(title: const Text('هم‌نوا'), actions: [
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Center(child: Text(dateLabel(DateTime.now()), style: const TextStyle(fontSize: 12, color: copper)))),
+      appBar: AppBar(toolbarHeight: 76, title: const HamnavaWordmark(), actions: [
+        if (wide) Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Center(child: Text(dateLabel(DateTime.now()), style: const TextStyle(fontSize: 15, color: forest)))),
       ]),
       body: SafeArea(child: wide ? Row(children: [
         NavigationRail(selectedIndex: page, onDestinationSelected: (value) => setState(() => page = value),

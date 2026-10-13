@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>هم‌نوا؛ دفتر و موج صدا</title>
+  <rect width="64" height="64" rx="20" fill="#244f43"/>
+  <g fill="none" stroke="#f6f2e9" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 26C19 23 25 25 32 31C39 25 45 23 51 26V44C44 41 39 43 32 49C25 43 20 41 13 44Z"/>
+    <path d="M32 31V49"/>
+  </g>
+  <path d="M25 17V21M32 12V23M39 17V21" stroke="#e4b58d" stroke-width="3" stroke-linecap="round"/>
+</svg>

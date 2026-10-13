@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 const forest = Color(0xff244f43);
 const copper = Color(0xffad7852);
+const expenseInk = Color(0xff855433);
+const mutedInk = Color(0xff58665e);
 
 String errorText(Object error) {
   if (error is TimeoutException) return 'ذخیره هنوز از سرور تأیید نشده؛ اینترنت را بررسی کن و دوباره تلاش کن.';

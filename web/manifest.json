@@ -1,1 +1,23 @@
-{"name":"هم‌نوا — Hamnava","short_name":"هم‌نوا","start_url":".","display":"standalone","background_color":"#f6f2e9","theme_color":"#244f43","description":"دفتر روزانه صوتی و مالی شخصی","lang":"fa","dir":"rtl"}
+{
+  "name": "هم‌نوا — Hamnava",
+  "short_name": "هم‌نوا",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f6f2e9",
+  "theme_color": "#244f43",
+  "description": "دفتر روزانه صوتی و مالی شخصی",
+  "lang": "fa",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "hamnava-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "hamnava-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

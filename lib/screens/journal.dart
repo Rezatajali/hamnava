@@ -4,6 +4,7 @@ import '../platform/browser.dart';
 import '../repository.dart';
 import '../voice_composer.dart';
 import '../widgets.dart';
+import '../brand.dart';
 
 class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key, required this.repo});
@@ -22,7 +23,7 @@ class _JournalScreenState extends State<JournalScreen> {
     Text('امروزت چطور گذشت؟', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: forest)),
     const SizedBox(height: 8), const Text('اینجا لازم نیست کلماتت بی‌نقص باشند.'), const SizedBox(height: 24),
     paper(Column(children: [
-      const Icon(Icons.spa_outlined, color: copper, size: 42), const SizedBox(height: 16),
+      const HamnavaMark(size: 56), const SizedBox(height: 16),
       const Text('کمی مکث. یک نفس. از روزت بگو.', style: TextStyle(fontSize: 18)), const SizedBox(height: 20),
       FilledButton.icon(onPressed: () => edit(), icon: const Icon(Icons.mic_none),
         label: const Padding(padding: EdgeInsets.all(12), child: Text('یادداشت تازه'))),
@@ -51,7 +52,7 @@ class _JournalScreenState extends State<JournalScreen> {
     final audioKey = data['audioKey'] as String? ?? '';
     return paper(Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
-        Expanded(child: Text(date == null ? 'در انتظار ثبت…' : dateLabel(date), style: const TextStyle(color: copper, fontSize: 12))),
+        Expanded(child: Text(date == null ? 'در انتظار ثبت…' : dateLabel(date), style: const TextStyle(color: forest, fontSize: 14))),
         Text(data['mood'] as String? ?? ''),
       ]),
       const SizedBox(height: 12), Text(data['title'] as String? ?? 'یادداشت روزانه', style: Theme.of(context).textTheme.titleLarge),

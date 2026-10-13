@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../widgets.dart';
+import '../brand.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -38,7 +39,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget build(BuildContext context) => Scaffold(body: SafeArea(child: Center(child: SingleChildScrollView(
     padding: const EdgeInsets.all(24), child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 440),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Icon(Icons.spa_outlined, size: 58, color: forest), const SizedBox(height: 16),
+        const Center(child: HamnavaMark(size: 80)), const SizedBox(height: 16),
         Text('هم‌نوا', textAlign: TextAlign.center, style: Theme.of(context).textTheme.displaySmall?.copyWith(color: forest)),
         const SizedBox(height: 8), const Text('روزت را بگو. خودت را بهتر بشنو.', textAlign: TextAlign.center),
         const SizedBox(height: 32),
@@ -65,7 +66,7 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Text(signup ? 'حساب دارم؛ ورود' : 'حساب ندارم؛ ثبت‌نام')),
         ]))),
         const Text('متن‌ها و اطلاعات مالی در حساب شخصی تو ذخیره می‌شوند. فایل‌های صوتی فقط در همین مرورگر می‌مانند.',
-          textAlign: TextAlign.center, style: TextStyle(height: 1.8, fontSize: 12)),
+          textAlign: TextAlign.center, style: TextStyle(height: 1.8, fontSize: 14)),
       ])),
   ))));
 }

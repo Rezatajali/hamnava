@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'firebase_options.dart';
 import 'screens/auth.dart';
+import 'theme.dart';
 import 'screens/home.dart';
 
 Future<void> main() async {
@@ -27,13 +28,7 @@ class HamnavaApp extends StatelessWidget {
     debugShowCheckedModeBanner: false, title: 'هم‌نوا | Hamnava',
     locale: const Locale('fa'), supportedLocales: const [Locale('fa')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    theme: ThemeData(
-      useMaterial3: true, scaffoldBackgroundColor: const Color(0xfff6f2e9),
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff244f43), surface: const Color(0xfffbf9f3)),
-      appBarTheme: const AppBarTheme(backgroundColor: Colors.transparent, elevation: 0),
-      inputDecorationTheme: const InputDecorationTheme(filled: true, fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(18)))),
-    ),
+    theme: hamnavaTheme(),
     home: startupError != null ? Scaffold(body: Center(child: Padding(
       padding: const EdgeInsets.all(32), child: Text(startupError!)))) :
       StreamBuilder<User?>(stream: FirebaseAuth.instance.authStateChanges(), builder: (context, snapshot) {

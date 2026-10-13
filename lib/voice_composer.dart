@@ -6,12 +6,13 @@ import 'widgets.dart';
 
 class VoiceComposer extends StatefulWidget {
   const VoiceComposer({super.key, required this.controller, required this.audioKey,
-    required this.onAudio, this.transcriptionOnly = false, this.enabled = true, this.onLocale, this.onBusy});
+    required this.onAudio, this.transcriptionOnly = false, this.compact = false, this.enabled = true, this.onLocale, this.onBusy});
   final TextEditingController controller;
   final String audioKey;
   final void Function(String) onAudio;
   final void Function(bool)? onBusy;
   final bool transcriptionOnly;
+  final bool compact;
   final bool enabled;
   final void Function(String)? onLocale;
   @override
@@ -93,22 +94,26 @@ class _VoiceComposerState extends State<VoiceComposer> {
   @override
   Widget build(BuildContext context) => Column(children: [
     const SizedBox(height: 12),
-    Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(
+    if (widget.compact) FilledButton.icon(
+      onPressed: pending || !widget.enabled ? null : running ? stop : start,
+      icon: Icon(running ? Icons.stop_rounded : Icons.mic_none_rounded),
+      label: Text(pending ? 'کمی صبر کن…' : running ? 'توقف گفتار' : 'شروع گفتار'),
+    ) else Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(
       shape: BoxShape.circle, border: Border.all(color: copper.withValues(alpha: .3), width: 2)),
       child: SizedBox(width: 96, height: 96, child: FilledButton(
         style: FilledButton.styleFrom(shape: const CircleBorder(), backgroundColor: running ? copper : forest),
         onPressed: pending || !widget.enabled ? null : running ? stop : start,
         child: Icon(running ? Icons.stop_rounded : Icons.mic_none_rounded, size: 40)))),
     const SizedBox(height: 12),
-    Text(pending ? 'کمی صبر کن…' : running ? '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')} · توقف ضبط' : 'برای گفتن، لمس کن'),
+    Text(pending ? 'کمی صبر کن…' : running ? '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')} · توقف ضبط' : widget.compact ? 'پیشنهاد صوتی؛ بدون ذخیرهٔ فایل صدا' : 'برای گفتن، لمس کن'),
     if (running) const Padding(padding: EdgeInsets.all(12), child: LinearProgressIndicator(color: copper)),
-    if (interim.isNotEmpty) Padding(padding: const EdgeInsets.all(12), child: Text(interim, style: const TextStyle(color: Colors.grey))),
+    if (interim.isNotEmpty) Padding(padding: const EdgeInsets.all(12), child: Text(interim, style: const TextStyle(color: mutedInk))),
     if (status.isNotEmpty) Padding(padding: const EdgeInsets.all(12), child: Text(status, textAlign: TextAlign.center)),
     DropdownButton<String>(value: locale, onChanged: running || pending || !widget.enabled ? null : (value) { setState(() => locale = value!); widget.onLocale?.call(locale); },
       items: const [DropdownMenuItem(value: 'fa-IR', child: Text('گفتار فارسی')),
         DropdownMenuItem(value: 'de-DE', child: Text('گفتار آلمانی'))]),
     const Text('تشخیص گفتار ممکن است صدا را به سرویس مرورگر ارسال کند. پشتیبانی زبان به دستگاه بستگی دارد. هر ضبط حداکثر پنج دقیقه است.',
-      style: TextStyle(fontSize: 11, height: 1.7), textAlign: TextAlign.center),
+      style: TextStyle(fontSize: 14, height: 1.7), textAlign: TextAlign.center),
     const SizedBox(height: 18),
   ]);
 }
