@@ -15,7 +15,7 @@ Future<void> main() async {
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false);
-    if (kIsWeb) await FirebaseAuth.instance.setPersistence(Persistence.SESSION);
+    if (kIsWeb) await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
   } catch (_) { startupError = 'اتصال اولیه برقرار نشد. اتصال اینترنت را بررسی کن و صفحه را دوباره باز کن.'; }
   runApp(HamnavaApp(startupError: startupError));
 }
