@@ -1,0 +1,10 @@
+.dart_tool/
+build/
+.flutter-plugins*
+.DS_Store
+*.iml
+.idea/
+.env*
+!\.env.example
+*service-account*.json
+*serviceAccount*.json
