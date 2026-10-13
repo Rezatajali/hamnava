@@ -1,39 +1,52 @@
-# Architecture and product direction
+# Architecture
 
-## Current starter
+## Layers
 
-`main.dart` hosts the demo UI and ephemeral state. `domain.dart` contains journal
-and transaction models, amount parsing, monthly totals, and the voice service
-boundary. `copy.dart` owns Persian product text. No backend is active.
+- `main.dart`: Firebase boot, session authentication boundary and Persian theme.
+- `screens/auth.dart`: sign-up, login and password recovery.
+- `screens/journal.dart`: entry editor, search, pagination, mood and audio links.
+- `screens/finance.dart`: independent ledger, monthly summaries and confirmation.
+- `screens/home.dart`: responsive navigation, account tools and JSON export.
+- `repository.dart`: all Firestore I/O bound to the current user's UID. Fixed document
+  IDs plus transactions preserve creation timestamps when a save is retried.
+- `domain.dart`: integer money parsing, monthly aggregation and deterministic voice
+  suggestions. The UI never writes a voice proposal without user confirmation.
+- `voice_composer.dart`: shared recording UI, transcript review and capability errors.
+- `platform/browser*.dart`: conditional JS interop. Native stub has no false support.
+- `web/browser.js`: MediaRecorder, live speech recognition, speech synthesis,
+  IndexedDB clip storage, browser download and session drafts.
+- `firestore.rules`: owner authorization and field validation, exercised by emulator
+  tests with authenticated, anonymous and cross-account clients.
 
-## Next implementation boundaries
+## Persistence and security
 
-- JournalRepository: drafts, entry persistence, edit, delete, export.
-- FinanceRepository: independent transactions, currency, categories, month queries.
-- VoiceService: runtime locale availability, permission, transcription, speech,
-  cancellation and errors. Implement separately for web and native targets.
-- Authentication: session lifecycle and per-user repository paths.
-- Localization: replace copy map with generated ARB resources before adding German.
+Journal path: `users/{uid}/journal/{id}`.
+Finance path: `users/{uid}/transactions/{id}`.
+Reads and deletes require UID ownership. Writes additionally validate known fields,
+integer amounts, lengths, categories and timestamps. Admin SDK/service-account access
+bypasses client Rules; this app contains neither. Session auth and disabled disk
+Firestore cache reduce cross-account residue on a shared browser. Clips remain local
+and are not encrypted separately from browser storage. Do not treat browser storage
+as protection from another person with access to the same operating-system account.
 
-Proposed Firestore paths: `users/{uid}/journal/{id}` and
-`users/{uid}/transactions/{id}`. Access requires the signed-in uid to equal the
-path owner; validate schema and enforce this in Firestore Rules, not only in UI.
-Add rules and emulator tests together before connecting a live database.
+## Zero-budget boundary
 
-## Voice-first design goal
+No paid speech API, Cloud Storage, Cloud Functions, AI classification or banking API.
+Browser providers may process speech remotely. Audio is local only. Firestore text
+sync and email/password Authentication require network access and respect Spark
+quotas. GitHub holds source code and documentation, never private journal records.
 
-Journal: talk → transcript → review/edit → save. Finance: talk → proposed amount,
-kind and category → explicit user review → save. These flows remain independent.
-The current starter does not implement either voice flow.
+## Failure behavior
 
-Budget is zero. Never silently enable a paid provider. Browser/device speech
-support, Persian quality, network requirements and privacy must be tested on
-real devices. API availability alone does not establish offline operation.
+No success message before a write is acknowledged. Timed-out operations may still
+complete; stable IDs avoid duplicate records when retried. Permission denial and
+unsupported speech leave typed entry available. Recognition ending does not silently
+restart the microphone; recording continues visibly until stopped or the five-minute
+limit. Navigation out of an active editor is blocked until recording stops. Cancel
+and page hide release microphone tracks. Final and interim recognition are separate.
 
-## Portfolio deliverables
+## Expansion
 
-Readable public source, English README, Persian UI screenshots, architecture
-notes, checks and a demo with synthetic data. Public repository choice does not
-make journal records public: those belong in an authenticated private backend.
-Original design direction: cream surfaces, deep green actions, restrained copper
-details, spacious Persian typography. No third-party branded assets are included.
+Add generated ARB resources and German UI translation, configurable currency without
+mixing totals, account/data deletion, on-device model inference and native voice
+adapters in later increments. Register native apps before changing target platforms.

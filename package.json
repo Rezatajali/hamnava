@@ -1,0 +1,1 @@
+{"name":"hamnava-web-checks","private":true,"scripts":{"test:browser":"node --test test-js/browser.test.cjs","test:rules":"firebase emulators:exec --project demo-hamnava --only firestore \"node --test test-js/firestore.test.cjs\""},"devDependencies":{"@firebase/rules-unit-testing":"^5.0.0","firebase":"^12.0.0","firebase-tools":"^14.0.0"}}

@@ -2,6 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hamnava/domain.dart';
 
 void main() {
+  test('voice money suggestions remain independent and reject unsupported currency', () {
+    final expense = suggestTransaction('امروز دوازده یورو برای ناهار خرج کردم');
+    expect(expense?.cents, 1200);
+    expect(expense?.kind, TransactionKind.expense);
+    expect(expense?.category, 'غذا');
+    expect(suggestTransaction('حقوق ۲۵۰۰ یورو دریافت کردم')?.kind, TransactionKind.income);
+    expect(suggestTransaction('۳۰۰ تومان خرج کردم'), isNull);
+    expect(suggestTransaction('1.234 یورو'), isNull);
+    expect(suggestTransaction('امروز خوب بود'), isNull);
+  });
+
   test('Persian and Arabic amounts preserve cents', () {
     expect(parseCents('۱۲٫۵۰'), 1250);
     expect(parseCents('١٢,٥'), 1250);
