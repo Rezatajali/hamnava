@@ -11,7 +11,7 @@ if [ -d web ]; then
 fi
 generated_dir="$(mktemp -d)"
 trap 'rm -rf "$generated_dir"' EXIT
-flutter create --platforms=web --project-name hamna "$generated_dir/scaffold"
+flutter create --platforms=web --project-name hamnava "$generated_dir/scaffold"
 cp -R "$generated_dir/scaffold/web" ./web
 flutter pub get
 flutter analyze

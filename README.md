@@ -1,4 +1,4 @@
-# Hamna — هم‌نوا
+# Hamnava — هم‌نوا
 
 Persian-first Flutter journal with a separate personal finance space.
 This is an early source starter, **not a deployed app**. Flutter/Dart were not

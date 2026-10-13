@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hamna/domain.dart';
+import 'package:hamnava/domain.dart';
 
 void main() {
   test('Persian and Arabic amounts preserve cents', () {

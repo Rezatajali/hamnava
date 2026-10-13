@@ -3,10 +3,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'copy.dart';
 import 'domain.dart';
 
-void main() => runApp(const HamnaApp());
+void main() => runApp(const HamnavaApp());
 
-class HamnaApp extends StatelessWidget {
-  const HamnaApp({super.key});
+class HamnavaApp extends StatelessWidget {
+  const HamnavaApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
